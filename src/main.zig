@@ -1,4 +1,5 @@
 const std = @import("std");
+const MAX_INPUT_SIZE: usize = 8192;
 
 fn runFile(filename: []u8) !void {
     std.debug.print("Inside runFile\n", .{});
@@ -6,8 +7,22 @@ fn runFile(filename: []u8) !void {
 }
 
 fn runPrompt() !void {
-    std.debug.print("Inside runPrompt", .{});
-    std.debug.print("\nlox>> ", .{});
+    std.debug.print("Lox Interpretor\n\n", .{});
+
+    const stdout_file = std.io.getStdOut().writer();
+    var bw = std.io.bufferedWriter(stdout_file);
+    const stdout = bw.writer();
+    const stdin = std.io.getStdIn().reader();
+    while (true) {
+        try stdout.writeAll("lox>> ");
+        try bw.flush();
+        const bare_line = try stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', MAX_INPUT_SIZE);
+        defer std.heap.page_allocator.free(bare_line);
+        const line = std.mem.trim(u8, bare_line, "\r");
+        if (std.mem.eql(u8, line, "exit")) {
+            break;
+        }
+    }
 }
 
 pub fn main() !void {
@@ -25,7 +40,6 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    try stdout.print("Number of args: {d}\n", .{args.len});
     try switch (args.len) {
         1 => runPrompt(),
         2 => runFile(args[1]),
