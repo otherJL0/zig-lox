@@ -1,4 +1,5 @@
 const std = @import("std");
+const scanner = @import("scanner.zig");
 const MAX_INPUT_SIZE: usize = 8192;
 
 fn runFile(filename: []u8) !void {
@@ -6,19 +7,26 @@ fn runFile(filename: []u8) !void {
     std.debug.print("filename {s}\n", .{filename});
 }
 
-fn runPrompt() !void {
-    std.debug.print("Lox Interpretor\n\n", .{});
+fn runPrompt(allocator: std.mem.Allocator) !void {
+    std.debug.print("Lox Interpretor\n", .{});
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
     const stdin = std.io.getStdIn().reader();
     while (true) {
-        try stdout.writeAll("lox>> ");
+        try stdout.writeAll(">>> ");
         try bw.flush();
         const bare_line = try stdin.readUntilDelimiterAlloc(std.heap.page_allocator, '\n', MAX_INPUT_SIZE);
         defer std.heap.page_allocator.free(bare_line);
         const line = std.mem.trim(u8, bare_line, "\r");
+        var _scanner = scanner.Scanner.init(allocator, line);
+        _scanner.scan_tokens();
+        defer _scanner.deinit();
+        for (_scanner.tokens.items) |token| {
+            try stdout.writeAll(token.toString());
+            try stdout.writeAll("\n");
+        }
         if (std.mem.eql(u8, line, "exit")) {
             break;
         }
@@ -41,7 +49,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     try switch (args.len) {
-        1 => runPrompt(),
+        1 => runPrompt(allocator),
         2 => runFile(args[1]),
         else => try stdout.print("\nUsage: lox [script].lox", .{}),
     };
