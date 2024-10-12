@@ -36,23 +36,48 @@ pub const Scanner = struct {
         };
     }
 
+    fn peek(self: Scanner) u8 {
+        return if (self.is_at_end()) 0 else self.source[self.current];
+    }
+
+    fn peekNext(self: Scanner) u8 {
+        return if (self.current + 1 >= self.source.len) 0 else self.source[self.current + 1];
+    }
+
+    fn addNumber(self: *Scanner) void {
+        while (std.ascii.isDigit(self.peek())) {
+            _ = self.advance();
+        }
+        if (self.peek() == '.') {
+            _ = self.advance();
+            while (std.ascii.isDigit(self.peek())) {
+                _ = self.advance();
+            }
+        }
+        self.add_token(.NUMBER);
+    }
+
     fn scan_token(self: *Scanner) void {
         const char: u8 = self.advance();
         switch (char) {
-            '(' => self.add_token(token.TokenType.LEFT_PAREN),
-            ')' => self.add_token(token.TokenType.RIGHT_PAREN),
-            '{' => self.add_token(token.TokenType.LEFT_BRACE),
-            '}' => self.add_token(token.TokenType.RIGHT_BRACE),
-            ',' => self.add_token(token.TokenType.COMMA),
-            '.' => self.add_token(token.TokenType.DOT),
-            '-' => self.add_token(token.TokenType.MINUS),
-            '+' => self.add_token(token.TokenType.PLUS),
-            ';' => self.add_token(token.TokenType.SEMICOLON),
-            '*' => self.add_token(token.TokenType.STAR),
+            '(' => self.add_token(.LEFT_PAREN),
+            ')' => self.add_token(.RIGHT_PAREN),
+            '{' => self.add_token(.LEFT_BRACE),
+            '}' => self.add_token(.RIGHT_BRACE),
+            ',' => self.add_token(.COMMA),
+            '.' => self.add_token(.DOT),
+            '-' => self.add_token(.MINUS),
+            '+' => self.add_token(.PLUS),
+            ';' => self.add_token(.SEMICOLON),
+            '*' => self.add_token(.STAR),
             ' ', '\t', '\r' => {},
             '\n' => self.line += 1,
             else => {
-                std.debug.print("Invalid Character: {c}\n", .{char});
+                if (std.ascii.isDigit(char)) {
+                    self.addNumber();
+                } else {
+                    std.debug.print("Invalid Character: {c}\n", .{char});
+                }
             },
         }
     }
@@ -82,9 +107,9 @@ test "simple expression" {
     scanner.scan_tokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
-        .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
-        .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
-        .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
+        .{ .token_type = .RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
+        .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
     };
     for (scanner.tokens.items, expected_tokens) |actual, expected| {
         try std.testing.expectEqual(expected.token_type, actual.token_type);
@@ -103,9 +128,9 @@ test "simple expression with whitespace" {
     scanner.scan_tokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
-        .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
-        .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
-        .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
+        .{ .token_type = .RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
+        .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
     };
     for (scanner.tokens.items, expected_tokens) |actual, expected| {
         try std.testing.expectEqual(expected.token_type, actual.token_type);
@@ -129,14 +154,71 @@ test "simple expression with linebreaks" {
     scanner.scan_tokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
-        .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 2 },
-        .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 3 },
-        .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 4 },
+        .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 2 },
+        .{ .token_type = .RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 3 },
+        .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 4 },
     };
     for (scanner.tokens.items, expected_tokens) |actual, expected| {
         try std.testing.expectEqual(expected.token_type, actual.token_type);
         try std.testing.expectEqualStrings(expected.lexeme, actual.lexeme);
         try std.testing.expectEqualStrings(expected.literal, actual.literal);
         try std.testing.expectEqual(expected.line, actual.line);
+    }
+}
+
+test "numbers" {
+    const sources = [_][]const u8{
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "0.0",
+        "1.0",
+        "2.0",
+        "3.0",
+        "4.0",
+        "5.0",
+        "6.0",
+        "7.0",
+        "8.0",
+        "9.0",
+        "10.0",
+        "0000",
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+        "0007",
+        "0008",
+        "0009",
+        "0000.0000",
+        "0001.0000",
+        "0002.0000",
+        "0003.0000",
+        "0004.0000",
+        "0005.0000",
+        "0006.0000",
+        "0007.0000",
+        "0008.0000",
+        "0009.0000",
+    };
+    for (sources) |source| {
+        var scanner = Scanner.init(std.testing.allocator, source);
+        defer scanner.deinit();
+        scanner.scan_tokens();
+        const expected = token.Token{ .token_type = .NUMBER, .lexeme = source, .literal = source, .line = 1 };
+        try std.testing.expectEqual(1, scanner.tokens.items.len);
+        try std.testing.expectEqual(expected.token_type, scanner.tokens.items[0].token_type);
+        try std.testing.expectEqual(expected.lexeme, scanner.tokens.items[0].lexeme);
+        try std.testing.expectEqual(expected.line, scanner.tokens.items[0].line);
     }
 }
