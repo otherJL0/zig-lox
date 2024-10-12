@@ -57,7 +57,6 @@ pub const Token = struct {
     line: usize,
 
     pub fn toString(self: Token) []const u8 {
-        const formatted_string = @tagName(self.token_type) ++ " " ++ self.lexeme ++ " " ++ self.literal;
-        return formatted_string;
+        return @tagName(self.token_type);
     }
 };
