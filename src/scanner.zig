@@ -49,8 +49,10 @@ pub const Scanner = struct {
             '+' => self.add_token(token.TokenType.PLUS),
             ';' => self.add_token(token.TokenType.SEMICOLON),
             '*' => self.add_token(token.TokenType.STAR),
+            ' ', '\t', '\r' => {},
+            '\n' => self.line += 1,
             else => {
-                std.debug.print("Invalid Character: {c}", .{char});
+                std.debug.print("Invalid Character: {c}\n", .{char});
             },
         }
     }
@@ -83,6 +85,53 @@ test "simple expression" {
         .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
         .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
         .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+    };
+    for (scanner.tokens.items, expected_tokens) |actual, expected| {
+        try std.testing.expectEqual(expected.token_type, actual.token_type);
+        try std.testing.expectEqualStrings(expected.lexeme, actual.lexeme);
+        try std.testing.expectEqualStrings(expected.literal, actual.literal);
+        try std.testing.expectEqual(expected.line, actual.line);
+    }
+}
+
+test "simple expression with whitespace" {
+    const source = "   (  )  ;";
+    const allocator = std.testing.allocator;
+    var scanner = Scanner.init(allocator, source);
+    defer scanner.deinit();
+    try std.testing.expectEqualStrings(source, scanner.source);
+    scanner.scan_tokens();
+    try std.testing.expectEqual(3, scanner.tokens.items.len);
+    const expected_tokens = [_]token.Token{
+        .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
+        .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 1 },
+        .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+    };
+    for (scanner.tokens.items, expected_tokens) |actual, expected| {
+        try std.testing.expectEqual(expected.token_type, actual.token_type);
+        try std.testing.expectEqualStrings(expected.lexeme, actual.lexeme);
+        try std.testing.expectEqualStrings(expected.literal, actual.literal);
+        try std.testing.expectEqual(expected.line, actual.line);
+    }
+}
+
+test "simple expression with linebreaks" {
+    const source =
+        \\
+        \\(
+        \\)
+        \\;
+    ;
+    const allocator = std.testing.allocator;
+    var scanner = Scanner.init(allocator, source);
+    defer scanner.deinit();
+    try std.testing.expectEqualStrings(source, scanner.source);
+    scanner.scan_tokens();
+    try std.testing.expectEqual(3, scanner.tokens.items.len);
+    const expected_tokens = [_]token.Token{
+        .{ .token_type = token.TokenType.LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 2 },
+        .{ .token_type = token.TokenType.RIGHT_PAREN, .lexeme = ")", .literal = ")", .line = 3 },
+        .{ .token_type = token.TokenType.SEMICOLON, .lexeme = ";", .literal = ";", .line = 4 },
     };
     for (scanner.tokens.items, expected_tokens) |actual, expected| {
         try std.testing.expectEqual(expected.token_type, actual.token_type);
