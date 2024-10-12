@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const TokenType = enum {
+pub const TokenType = enum {
     // Single character tokens
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -50,7 +50,7 @@ const TokenType = enum {
     EOF,
 };
 
-const Token = struct {
+pub const Token = struct {
     token_type: TokenType,
     lexeme: []const u8,
     literal: []const u8,
