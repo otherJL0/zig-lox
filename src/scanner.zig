@@ -85,6 +85,15 @@ pub const Scanner = struct {
             '=' => self.add_token(if (self.match('=')) .EQUAL_EQUAL else .EQUAL),
             '<' => self.add_token(if (self.match('=')) .LESS_EQUAL else .LESS),
             '>' => self.add_token(if (self.match('=')) .GREATER_EQUAL else .GREATER),
+            '/' => {
+                if (self.match('/')) {
+                    while (self.peek() != '\n' and !self.is_at_end()) {
+                        _ = self.advance();
+                    }
+                } else {
+                    self.add_token(.SLASH);
+                }
+            },
             ' ', '\t', '\r' => {},
             '\n' => self.line += 1,
             else => {
@@ -298,6 +307,36 @@ test "test comparisons" {
                 .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
                 .{ .token_type = .GREATER_EQUAL, .lexeme = ">=", .literal = ">=", .line = 1 },
                 .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+            },
+        },
+    };
+    for (test_cases) |test_case| {
+        var scanner = Scanner.init(std.testing.allocator, test_case.source);
+        defer scanner.deinit();
+        scanner.scan_tokens();
+        try std.testing.expectEqual(test_case.expected_tokens.len, scanner.tokens.items.len);
+        for (test_case.expected_tokens, scanner.tokens.items) |expected, actual| {
+            try std.testing.expectEqual(expected.token_type, actual.token_type);
+            try std.testing.expectEqualStrings(expected.lexeme, actual.lexeme);
+        }
+    }
+}
+
+test "test comments" {
+    const TestCase = struct {
+        source: []const u8,
+        expected_tokens: []const token.Token,
+    };
+    const test_cases = [_]TestCase{
+        .{
+            .source =
+            \\// This is a comment
+            \\1 / 1
+            ,
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 2 },
+                .{ .token_type = .SLASH, .lexeme = "/", .literal = "/", .line = 2 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 2 },
             },
         },
     };
