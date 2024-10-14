@@ -21,7 +21,7 @@ fn runPrompt(allocator: std.mem.Allocator) !void {
         defer std.heap.page_allocator.free(bare_line);
         const line = std.mem.trim(u8, bare_line, "\r");
         var _scanner = scanner.Scanner.init(allocator, line);
-        _scanner.scan_tokens();
+        _scanner.scanTokens();
         defer _scanner.deinit();
         for (_scanner.tokens.items) |token| {
             try stdout.writeAll(token.toString());

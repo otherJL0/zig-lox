@@ -25,7 +25,7 @@ pub const Scanner = struct {
     }
 
     fn match(self: *Scanner, expected: u8) bool {
-        if (self.is_at_end()) {
+        if (self.isAtEnd()) {
             return false;
         }
         if (self.source[self.current] != expected) {
@@ -35,7 +35,7 @@ pub const Scanner = struct {
         return true;
     }
 
-    fn add_token(self: *Scanner, token_type: token.TokenType) void {
+    fn addToken(self: *Scanner, token_type: token.TokenType) void {
         const text = self.source[self.start..self.current];
         self.tokens.append(token.Token{
             .token_type = token_type,
@@ -48,7 +48,7 @@ pub const Scanner = struct {
     }
 
     fn peek(self: Scanner) u8 {
-        return if (self.is_at_end()) 0 else self.source[self.current];
+        return if (self.isAtEnd()) 0 else self.source[self.current];
     }
 
     fn peekNext(self: Scanner) u8 {
@@ -65,33 +65,33 @@ pub const Scanner = struct {
                 _ = self.advance();
             }
         }
-        self.add_token(.NUMBER);
+        self.addToken(.NUMBER);
     }
 
-    fn scan_token(self: *Scanner) void {
+    fn scanToken(self: *Scanner) void {
         const char: u8 = self.advance();
         switch (char) {
-            '(' => self.add_token(.LEFT_PAREN),
-            ')' => self.add_token(.RIGHT_PAREN),
-            '{' => self.add_token(.LEFT_BRACE),
-            '}' => self.add_token(.RIGHT_BRACE),
-            ',' => self.add_token(.COMMA),
-            '.' => self.add_token(.DOT),
-            '-' => self.add_token(.MINUS),
-            '+' => self.add_token(.PLUS),
-            ';' => self.add_token(.SEMICOLON),
-            '*' => self.add_token(.STAR),
-            '!' => self.add_token(if (self.match('=')) .BANG_EQUAL else .BANG),
-            '=' => self.add_token(if (self.match('=')) .EQUAL_EQUAL else .EQUAL),
-            '<' => self.add_token(if (self.match('=')) .LESS_EQUAL else .LESS),
-            '>' => self.add_token(if (self.match('=')) .GREATER_EQUAL else .GREATER),
+            '(' => self.addToken(.LEFT_PAREN),
+            ')' => self.addToken(.RIGHT_PAREN),
+            '{' => self.addToken(.LEFT_BRACE),
+            '}' => self.addToken(.RIGHT_BRACE),
+            ',' => self.addToken(.COMMA),
+            '.' => self.addToken(.DOT),
+            '-' => self.addToken(.MINUS),
+            '+' => self.addToken(.PLUS),
+            ';' => self.addToken(.SEMICOLON),
+            '*' => self.addToken(.STAR),
+            '!' => self.addToken(if (self.match('=')) .BANG_EQUAL else .BANG),
+            '=' => self.addToken(if (self.match('=')) .EQUAL_EQUAL else .EQUAL),
+            '<' => self.addToken(if (self.match('=')) .LESS_EQUAL else .LESS),
+            '>' => self.addToken(if (self.match('=')) .GREATER_EQUAL else .GREATER),
             '/' => {
                 if (self.match('/')) {
-                    while (self.peek() != '\n' and !self.is_at_end()) {
+                    while (self.peek() != '\n' and !self.isAtEnd()) {
                         _ = self.advance();
                     }
                 } else {
-                    self.add_token(.SLASH);
+                    self.addToken(.SLASH);
                 }
             },
             ' ', '\t', '\r' => {},
@@ -106,14 +106,14 @@ pub const Scanner = struct {
         }
     }
 
-    pub fn scan_tokens(self: *Scanner) void {
-        while (!self.is_at_end()) {
+    pub fn scanTokens(self: *Scanner) void {
+        while (!self.isAtEnd()) {
             self.start = self.current;
-            self.scan_token();
+            self.scanToken();
         }
     }
 
-    fn is_at_end(self: Scanner) bool {
+    fn isAtEnd(self: Scanner) bool {
         return self.current >= self.source.len;
     }
 
@@ -128,7 +128,7 @@ test "simple expression" {
     var scanner = Scanner.init(allocator, source);
     defer scanner.deinit();
     try std.testing.expectEqualStrings(source, scanner.source);
-    scanner.scan_tokens();
+    scanner.scanTokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
         .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
@@ -149,7 +149,7 @@ test "simple expression with whitespace" {
     var scanner = Scanner.init(allocator, source);
     defer scanner.deinit();
     try std.testing.expectEqualStrings(source, scanner.source);
-    scanner.scan_tokens();
+    scanner.scanTokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
         .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 1 },
@@ -175,7 +175,7 @@ test "simple expression with linebreaks" {
     var scanner = Scanner.init(allocator, source);
     defer scanner.deinit();
     try std.testing.expectEqualStrings(source, scanner.source);
-    scanner.scan_tokens();
+    scanner.scanTokens();
     try std.testing.expectEqual(3, scanner.tokens.items.len);
     const expected_tokens = [_]token.Token{
         .{ .token_type = .LEFT_PAREN, .lexeme = "(", .literal = "(", .line = 2 },
@@ -238,7 +238,7 @@ test "numbers" {
     for (sources) |source| {
         var scanner = Scanner.init(std.testing.allocator, source);
         defer scanner.deinit();
-        scanner.scan_tokens();
+        scanner.scanTokens();
         const expected = token.Token{ .token_type = .NUMBER, .lexeme = source, .literal = source, .line = 1 };
         try std.testing.expectEqual(1, scanner.tokens.items.len);
         try std.testing.expectEqual(expected.token_type, scanner.tokens.items[0].token_type);
@@ -313,7 +313,7 @@ test "test comparisons" {
     for (test_cases) |test_case| {
         var scanner = Scanner.init(std.testing.allocator, test_case.source);
         defer scanner.deinit();
-        scanner.scan_tokens();
+        scanner.scanTokens();
         try std.testing.expectEqual(test_case.expected_tokens.len, scanner.tokens.items.len);
         for (test_case.expected_tokens, scanner.tokens.items) |expected, actual| {
             try std.testing.expectEqual(expected.token_type, actual.token_type);
@@ -343,7 +343,7 @@ test "test comments" {
     for (test_cases) |test_case| {
         var scanner = Scanner.init(std.testing.allocator, test_case.source);
         defer scanner.deinit();
-        scanner.scan_tokens();
+        scanner.scanTokens();
         try std.testing.expectEqual(test_case.expected_tokens.len, scanner.tokens.items.len);
         for (test_case.expected_tokens, scanner.tokens.items) |expected, actual| {
             try std.testing.expectEqual(expected.token_type, actual.token_type);
