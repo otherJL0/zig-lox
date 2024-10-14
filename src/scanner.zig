@@ -1,6 +1,24 @@
 const std = @import("std");
 const token = @import("token.zig");
 
+const Keyword = std.static_string_map.StaticStringMap(token.TokenType).initComptime(.{
+    .{ "and", .AND },
+    .{ "class", .CLASS },
+    .{ "false", .FALSE },
+    .{ "true", .TRUE },
+    .{ "for", .FOR },
+    .{ "fun", .FUN },
+    .{ "if", .IF },
+    .{ "nil", .NIL },
+    .{ "or", .OR },
+    .{ "print", .PRINT },
+    .{ "return", .RETURN },
+    .{ "super", .SUPER },
+    .{ "this", .THIS },
+    .{ "var", .VAR },
+    .{ "while", .WHILE },
+});
+
 pub const Scanner = struct {
     source: []const u8,
     tokens: std.ArrayList(token.Token),
@@ -77,6 +95,18 @@ pub const Scanner = struct {
         self.addToken(.STRING);
     }
 
+    fn identifier(self: *Scanner) void {
+        while (std.ascii.isAlphanumeric(self.peek()) or self.peek() == '_') {
+            _ = self.advance();
+        }
+        const text = self.source[self.start..self.current];
+        if (Keyword.get(text)) |keyword| {
+            self.addToken(keyword);
+        } else {
+            self.addToken(.IDENTIFIER);
+        }
+    }
+
     fn scanToken(self: *Scanner) void {
         const char: u8 = self.advance();
         switch (char) {
@@ -109,6 +139,8 @@ pub const Scanner = struct {
             else => {
                 if (std.ascii.isDigit(char)) {
                     self.addNumber();
+                } else if (std.ascii.isAlphanumeric(char) or char == '_') {
+                    self.identifier();
                 } else {
                     std.debug.print("Invalid Character: {c}\n", .{char});
                 }

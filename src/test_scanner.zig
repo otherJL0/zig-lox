@@ -193,3 +193,51 @@ test "strings" {
     }};
     try testLoxTestCases(test_cases);
 }
+
+test "identifiers" {
+    const test_cases = &[_]TestCase{
+        .{ .source = "a = 5;", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .IDENTIFIER, .lexeme = "a", .literal = "a", .line = 1 },
+            .{ .token_type = .EQUAL, .lexeme = "=", .literal = "=", .line = 1 },
+            .{ .token_type = .NUMBER, .lexeme = "5", .literal = "5", .line = 1 },
+            .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        } },
+        .{ .source = "camelCase = 5;", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .IDENTIFIER, .lexeme = "camelCase", .literal = "camelCase", .line = 1 },
+            .{ .token_type = .EQUAL, .lexeme = "=", .literal = "=", .line = 1 },
+            .{ .token_type = .NUMBER, .lexeme = "5", .literal = "5", .line = 1 },
+            .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        } },
+        .{ .source = "snake_case = 5;", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .IDENTIFIER, .lexeme = "snake_case", .literal = "snake_case", .line = 1 },
+            .{ .token_type = .EQUAL, .lexeme = "=", .literal = "=", .line = 1 },
+            .{ .token_type = .NUMBER, .lexeme = "5", .literal = "5", .line = 1 },
+            .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        } },
+    };
+    try testLoxTestCases(test_cases);
+}
+
+test "keywords" {
+    const test_cases = &[_]TestCase{
+        .{ .source = "true != \"true\"", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .TRUE, .lexeme = "true", .literal = "true", .line = 1 },
+            .{ .token_type = .BANG_EQUAL, .lexeme = "!=", .literal = "!=", .line = 1 },
+            .{ .token_type = .STRING, .lexeme = "\"true\"", .literal = "\"true\"", .line = 1 },
+        } },
+        .{ .source = "true or false", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .TRUE, .lexeme = "true", .literal = "true", .line = 1 },
+            .{ .token_type = .OR, .lexeme = "or", .literal = "or", .line = 1 },
+            .{ .token_type = .FALSE, .lexeme = "false", .literal = "false", .line = 1 },
+        } },
+        .{ .source = "var isSunny = !cloudy;", .expected_tokens = &[_]token.Token{
+            .{ .token_type = .VAR, .lexeme = "var", .literal = "var", .line = 1 },
+            .{ .token_type = .IDENTIFIER, .lexeme = "isSunny", .literal = "isSunny", .line = 1 },
+            .{ .token_type = .EQUAL, .lexeme = "=", .literal = "=", .line = 1 },
+            .{ .token_type = .BANG, .lexeme = "!", .literal = "!", .line = 1 },
+            .{ .token_type = .IDENTIFIER, .lexeme = "cloudy", .literal = "cloudy", .line = 1 },
+            .{ .token_type = .SEMICOLON, .lexeme = ";", .literal = ";", .line = 1 },
+        } },
+    };
+    try testLoxTestCases(test_cases);
+}
