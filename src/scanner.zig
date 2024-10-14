@@ -68,6 +68,15 @@ pub const Scanner = struct {
         self.addToken(.NUMBER);
     }
 
+    fn string(self: *Scanner) void {
+        while (self.peek() != '"' and !self.isAtEnd()) {
+            if (self.peek() == '\n') self.line += 1;
+            _ = self.advance();
+        }
+        _ = self.advance();
+        self.addToken(.STRING);
+    }
+
     fn scanToken(self: *Scanner) void {
         const char: u8 = self.advance();
         switch (char) {
@@ -96,6 +105,7 @@ pub const Scanner = struct {
             },
             ' ', '\t', '\r' => {},
             '\n' => self.line += 1,
+            '"' => self.string(),
             else => {
                 if (std.ascii.isDigit(char)) {
                     self.addNumber();

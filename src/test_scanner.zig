@@ -183,3 +183,13 @@ test "test comments" {
     };
     try testLoxTestCases(test_cases);
 }
+
+test "strings" {
+    const test_cases = &[_]TestCase{.{
+        .source =
+        \\"hello"
+        ,
+        .expected_tokens = &[_]token.Token{.{ .token_type = .STRING, .lexeme = "\"hello\"", .literal = "\"hello\"", .line = 1 }},
+    }};
+    try testLoxTestCases(test_cases);
+}
