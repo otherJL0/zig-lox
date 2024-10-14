@@ -24,6 +24,17 @@ pub const Scanner = struct {
         return char;
     }
 
+    fn match(self: *Scanner, expected: u8) bool {
+        if (self.is_at_end()) {
+            return false;
+        }
+        if (self.source[self.current] != expected) {
+            return false;
+        }
+        self.current += 1;
+        return true;
+    }
+
     fn add_token(self: *Scanner, token_type: token.TokenType) void {
         const text = self.source[self.start..self.current];
         self.tokens.append(token.Token{
@@ -70,6 +81,10 @@ pub const Scanner = struct {
             '+' => self.add_token(.PLUS),
             ';' => self.add_token(.SEMICOLON),
             '*' => self.add_token(.STAR),
+            '!' => self.add_token(if (self.match('=')) .BANG_EQUAL else .BANG),
+            '=' => self.add_token(if (self.match('=')) .EQUAL_EQUAL else .EQUAL),
+            '<' => self.add_token(if (self.match('=')) .LESS_EQUAL else .LESS),
+            '>' => self.add_token(if (self.match('=')) .GREATER_EQUAL else .GREATER),
             ' ', '\t', '\r' => {},
             '\n' => self.line += 1,
             else => {
@@ -220,5 +235,80 @@ test "numbers" {
         try std.testing.expectEqual(expected.token_type, scanner.tokens.items[0].token_type);
         try std.testing.expectEqual(expected.lexeme, scanner.tokens.items[0].lexeme);
         try std.testing.expectEqual(expected.line, scanner.tokens.items[0].line);
+    }
+}
+
+test "test comparisons" {
+    const TestCase = struct {
+        source: []const u8,
+        expected_tokens: []const token.Token,
+    };
+    const test_cases = [_]TestCase{
+        .{
+            .source = "1 = 1",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+                .{ .token_type = .EQUAL, .lexeme = "=", .literal = "=", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+            },
+        },
+        .{
+            .source = "1 == 1",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+                .{ .token_type = .EQUAL_EQUAL, .lexeme = "==", .literal = "==", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+            },
+        },
+        .{
+            .source = "0 != 1",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+                .{ .token_type = .BANG_EQUAL, .lexeme = "!=", .literal = "!=", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+            },
+        },
+        .{
+            .source = "0 <= 1",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+                .{ .token_type = .LESS_EQUAL, .lexeme = "<=", .literal = "<=", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+            },
+        },
+        .{
+            .source = "0 < 1",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+                .{ .token_type = .LESS, .lexeme = "<", .literal = "<", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+            },
+        },
+        .{
+            .source = "1 > 0",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+                .{ .token_type = .GREATER, .lexeme = ">", .literal = ">", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+            },
+        },
+        .{
+            .source = "1 >= 0",
+            .expected_tokens = &[_]token.Token{
+                .{ .token_type = .NUMBER, .lexeme = "1", .literal = "1", .line = 1 },
+                .{ .token_type = .GREATER_EQUAL, .lexeme = ">=", .literal = ">=", .line = 1 },
+                .{ .token_type = .NUMBER, .lexeme = "0", .literal = "0", .line = 1 },
+            },
+        },
+    };
+    for (test_cases) |test_case| {
+        var scanner = Scanner.init(std.testing.allocator, test_case.source);
+        defer scanner.deinit();
+        scanner.scan_tokens();
+        try std.testing.expectEqual(test_case.expected_tokens.len, scanner.tokens.items.len);
+        for (test_case.expected_tokens, scanner.tokens.items) |expected, actual| {
+            try std.testing.expectEqual(expected.token_type, actual.token_type);
+            try std.testing.expectEqualStrings(expected.lexeme, actual.lexeme);
+        }
     }
 }
