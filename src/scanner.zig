@@ -153,6 +153,14 @@ pub const Scanner = struct {
             self.start = self.current;
             self.scanToken();
         }
+        self.tokens.append(token.Token{
+            .token_type = token.TokenType.EOF,
+            .lexeme = "",
+            .literal = null,
+            .line = self.line,
+        }) catch |err| switch (err) {
+            else => unreachable,
+        };
     }
 
     fn isAtEnd(self: Scanner) bool {
